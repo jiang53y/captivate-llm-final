@@ -1,9 +1,12 @@
+/*
+  Cloudflare Worker: secure proxy for LLM feedback
+*/
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin") || "";
     const allowedOrigin = isAllowedOrigin(origin);
 
-    // Preflight (browser permission check)
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
@@ -11,12 +14,10 @@ export default {
       });
     }
 
-    // Only allow POST
     if (request.method !== "POST") {
       return new Response("Method not allowed", { status: 405 });
     }
 
-    // Block disallowed origins
     if (!allowedOrigin) {
       return new Response(JSON.stringify({ error: "Origin not allowed", origin }), {
         status: 403,
@@ -24,7 +25,6 @@ export default {
       });
     }
 
-    // Parse JSON
     let body;
     try {
       body = await request.json();
@@ -60,8 +60,6 @@ export default {
       });
     }
 
-    // ===== LLM PROMPTS =====
-
     const systemPrompt =
       "You are an instructional coach evaluating a short open-ended response about task sequencing and dependencies. " +
       "Be concise, neutral, and explanatory. Do not praise or judge the learner. " +
@@ -79,6 +77,10 @@ export default {
       '- "Correct": all criteria are met clearly.\n' +
       '- "Not quite right": some criteria are met, but at least one is missing or unclear.\n' +
       '- "Incorrect": most criteria are not met or the response is off-topic.\n\n' +
+      "Write feedback as concise, explanatory coaching:\n" +
+      "- summary: 1–2 sentences explaining how the response aligns or does not align with the learning objective and criteria.\n" +
+      "- criteria_feedback: for each criterion, set met=true/false and add a short comment (max 1 sentence each).\n" +
+      "- next_step: one concrete suggestion to strengthen the response (e.g., name a dependency, clarify the risk, or give a more specific example).\n\n" +
       "Output MUST be ONLY JSON with exactly these keys:\n" +
       "- verdict\n" +
       "- summary\n" +
@@ -159,6 +161,7 @@ function isAllowedOrigin(origin) {
   if (!origin) return null;
 
   if (/^http:\/\/localhost:\d+$/.test(origin)) return origin;
+
   if (origin === "https://jiang53y.github.io") return origin;
 
   return null;
