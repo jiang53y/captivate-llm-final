@@ -64,27 +64,24 @@ export default {
       "You are an instructional coach evaluating a short open-ended response about task sequencing and dependencies. " +
       "Be concise, neutral, and explanatory. Do not praise or judge the learner. " +
       "Evaluate only against the provided learning objective and criteria. " +
-      "If the response is vague or incomplete, note what is missing. " +
-      "Return ONLY valid JSON matching the required schema. No markdown, no extra text.";
+      "Return ONLY valid JSON with the required schema. No markdown, no extra text.";
 
     const userPrompt =
       `Learning objective:\n${learningObjective}\n\n` +
       `Evaluation criteria:\n${criteria.map((c, i) => `${i + 1}. ${c}`).join("\n")}\n\n` +
       `Learner response:\n${responseText}\n\n` +
-      "Task:\n" +
-      "Evaluate whether the learner response meets each criterion. The response should explain task dependencies and how sequencing reduces project risk or rework.\n\n" +
+      "Evaluate whether the response:\n" +
+      "- Identifies at least one dependency\n" +
+      "- Explains how sequencing affects project flow\n" +
+      "- Mentions a realistic risk (e.g., rework, delays, coordination)\n\n" +
       "Rules for verdict:\n" +
       '- "Correct": all criteria are met clearly.\n' +
       '- "Not quite right": some criteria are met, but at least one is missing or unclear.\n' +
       '- "Incorrect": most criteria are not met or the response is off-topic.\n\n' +
-      "Write feedback as concise, explanatory coaching:\n" +
-      "- summary: 1–2 sentences explaining how the response aligns or does not align with the learning objective and criteria.\n" +
-      "- criteria_feedback: for each criterion, set met=true/false and add a short comment (max 1 sentence each).\n" +
-      "- next_step: one concrete suggestion to strengthen the response (e.g., name a dependency, clarify the risk, or give a more specific example).\n\n" +
       "Output MUST be ONLY JSON with exactly these keys:\n" +
       "- verdict\n" +
       "- summary\n" +
-      "- criteria_feedback\n" +
+      "- criteria_feedback (array of { criterion, met, comment })\n" +
       "- next_step\n";
 
     const openaiResp = await fetch("https://api.openai.com/v1/responses", {
@@ -159,11 +156,8 @@ export default {
 
 function isAllowedOrigin(origin) {
   if (!origin) return null;
-
   if (/^http:\/\/localhost:\d+$/.test(origin)) return origin;
-
   if (origin === "https://jiang53y.github.io") return origin;
-
   return null;
 }
 
